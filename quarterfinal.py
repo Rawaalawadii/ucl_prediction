@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[46]:
+# In[25]:
 
 
 import pandas as pd
@@ -14,14 +14,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 
 
-# In[47]:
+# In[26]:
 
 
 ucl_data = pd.read_csv('ucl_data.csv')
 ucl_data.head()
 
 
-# In[48]:
+# In[27]:
 
 
 winner = []
@@ -36,7 +36,7 @@ ucl_data['winning'] = winner
 ucl_data.head()
 
 
-# In[49]:
+# In[28]:
 
 
 Homeg = []
@@ -54,14 +54,14 @@ ucl_data['Away'] = Away
 ucl_data.head()
 
 
-# In[60]:
+# In[29]:
 
 
 matches_data = ucl_data
 matches_data
 
 
-# In[65]:
+# In[30]:
 
 
 matches_data = matches_data.reset_index(drop=True)
@@ -73,61 +73,60 @@ matches_data.loc[matches_data.winning == 'other','winning']=0
 matches_data
 
 
-# In[77]:
+# In[31]:
 
 
-#convert home team and away team from categorical variables to continous inputs 
-# Get dummy variables
+
 matches_data = matches_data.drop(['Team'], axis=1)
 final = pd.get_dummies(matches_data, prefix=['Homeg', 'Away'], columns=['Homeg', 'Away'])
 
-# Separate X and y sets
+
 X = final.drop(['winning'], axis=1)
 y = final["winning"]
 y = y.astype('int')
 
-# Separate train and test sets
+
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=42)
 
 
-# In[78]:
+# In[32]:
 
 
 final.head()
 
 
-# In[79]:
+# In[33]:
 
 
-logreg = LogisticRegression()
-logreg.fit(X_train, y_train)
-score = logreg.score(X_train, y_train)
-score2 = logreg.score(X_test, y_test)
+result_model = LogisticRegression()
+result_model.fit(X_train, y_train)
+score = result_model.score(X_train, y_train)
+score2 = result_model.score(X_test, y_test)
 
 print("Training set accuracy: ", '%.3f'%(score))
 print("Test set accuracy: ", '%.3f'%(score2))
 
 
-# In[94]:
+# In[34]:
 
 
 ranking = pd.read_csv('ranking.csv') 
 Rounds = pd.read_csv('Rounds.csv')
 
-# List for storing the group stage games
+
 pred_set = []
 
 
-# In[95]:
+# In[35]:
 
 
 Rounds.insert(1, 'first_position', Rounds['Homeg'].map(ranking.set_index('Team')['position']))
 Rounds.insert(2, 'second_position', Rounds['Away'].map(ranking.set_index('Team')['position']))
-#Rounds = fixtures.iloc[:48, :]
+
 Rounds.tail()
 
 
-# In[96]:
+# In[36]:
 
 
 for index, row in Rounds.iterrows():
@@ -142,7 +141,7 @@ backup_pred_set = pred_set
 pred_set.head()
 
 
-# In[97]:
+# In[37]:
 
 
 pred_set = pd.get_dummies(pred_set, prefix=['Homeg', 'Away'], columns=['Homeg', 'Away'])
@@ -153,25 +152,29 @@ for c in missing_cols:
     pred_set[c] = 0
 pred_set = pred_set[final.columns]
 
-
 pred_set = pred_set.drop(['winning'], axis=1)
 
 pred_set.head()
 
 
-# In[109]:
+# In[38]:
 
 
-predictions = logreg.predict(pred_set)
+predictions = result_model.predict(pred_set)
 count = 1
 for i in range(Rounds.shape[0]):
+    num = 1
     print("Match" +str(count)+ ": " + backup_pred_set.iloc[i, 1] + " VS " + backup_pred_set.iloc[i, 0])
-    if predictions[i] == 2:
+    if predictions[i] == 1:
         print("Winner: " + backup_pred_set.iloc[i, 1])
-    elif predictions[i] == 1:
-        print("Penalties")
-        print("barcelona") 
     elif predictions[i] == 0:
+       # print("Penalties")
+        if '%.3f'%(result_model.predict_proba(pred_set)[i][2]) > '%.3f'%(result_model.predict_proba(pred_set)[i][0]):
+            print( backup_pred_set.iloc[i, 1] + ' winning: ', '%.3f'%(result_model.predict_proba(pred_set)[i][2]))
+        else:
+            print( "Winner: "+backup_pred_set.iloc[i, 0] )
+        num = 0 
+    elif predictions[i] == 2:
         print("Winner: " + backup_pred_set.iloc[i, 0])
     print("")
     count = count+1
